@@ -1,0 +1,2331 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ONLINE SEAT CHANGE SYSTEM ver1</title>
+
+<style>
+:root {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-soft: #f5f6f8;
+  --border: #d9dde3;
+  --text: #20242b;
+  --muted: #737b87;
+  --accent: #2463eb;
+  --accent-soft: #eaf1ff;
+  --green: #16a34a;
+  --red: #dc2626;
+  --shadow: 0 4px 18px rgba(0,0,0,.07);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Noto Sans JP", sans-serif;
+}
+
+button, input, textarea, select { font: inherit; }
+button { cursor: pointer; }
+
+.app {
+  width: 100%;
+  min-height: 100vh;
+}
+
+header {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid var(--border);
+  background: #fff;
+}
+
+.brand {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+
+main {
+  width: min(100%, 900px);
+  margin: 0 auto;
+  padding: 28px 18px 60px;
+}
+
+.screen { display: none; }
+.screen.active { display: block; }
+
+h1 {
+  font-size: clamp(23px, 4vw, 32px);
+  margin: 0 0 10px;
+  font-weight: 800;
+}
+
+h2 {
+  font-size: 20px;
+  margin: 0 0 18px;
+}
+
+h3 {
+  font-size: 16px;
+  margin: 0 0 12px;
+}
+
+.description {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.button {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  border-radius: 10px;
+  padding: 14px 18px;
+  font-weight: 700;
+  transition: .15s;
+}
+
+.button:hover { background: #f4f6f9; }
+
+.button.primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.button.primary:hover { background: #174fc9; }
+
+.button.danger {
+  color: var(--red);
+  border-color: #fecaca;
+  background: #fff;
+}
+
+.button.small {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.menu-button {
+  width: 100%;
+  min-height: 65px;
+  font-size: 17px;
+}
+
+input, textarea, select {
+  width: 100%;
+  border: 1px solid #cbd1da;
+  border-radius: 9px;
+  padding: 12px;
+  color: var(--text);
+  background: #fff;
+  outline: none;
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(36,99,235,.1);
+}
+
+textarea {
+  min-height: 85px;
+  resize: vertical;
+}
+
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 7px;
+}
+
+.field { margin-bottom: 16px; }
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.actions .button { flex: 1; }
+.back-button { margin-bottom: 20px; }
+.center { text-align: center; }
+
+.timer {
+  font-size: clamp(32px, 8vw, 52px);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  margin-bottom: 24px;
+}
+
+.countdown-number {
+  font-size: clamp(70px, 18vw, 120px);
+  font-weight: 900;
+}
+
+.question-number {
+  color: var(--muted);
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.question-text {
+  font-size: clamp(20px, 4vw, 28px);
+  line-height: 1.5;
+  font-weight: 800;
+  margin-bottom: 24px;
+}
+
+.answer-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.answer-button {
+  min-height: 75px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 700;
+  padding: 12px;
+  transition: background .1s, border-color .1s;
+}
+
+/* マウス操作時のみhover表示を使用 */
+@media (hover: hover) and (pointer: fine) {
+  .answer-button:hover:not(:disabled) {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+  }
+}
+
+.answer-button:active:not(:disabled) {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.answer-button:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.answer-button.correct {
+  border: 5px solid var(--green);
+  background: #effdf3;
+}
+
+.answer-button.incorrect {
+  border: 5px solid var(--red);
+  background: #fff1f1;
+}
+
+.result-time {
+  font-size: clamp(36px, 9vw, 64px);
+  font-weight: 900;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  margin: 20px 0;
+}
+
+.section { margin-top: 28px; }
+
+.section-title {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+  margin-bottom: 16px;
+}
+
+.board-title {
+  text-align: center;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: 3px;
+  padding: 14px;
+  margin-bottom: 18px;
+  background: #f1f3f6;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+
+.seat-map-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.seat-grid {
+  width: 100%;
+  max-width: 760px;
+  aspect-ratio: 7 / 6;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-rows: repeat(6, minmax(0, 1fr));
+  gap: clamp(3px, 1vw, 9px);
+}
+
+.seat-cell {
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid #cbd1da;
+  border-radius: 7px;
+  background: #fff;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  padding: 3px;
+}
+
+.seat-cell.occupied {
+  background: #eaf1ff;
+  border-color: #8aabf4;
+}
+
+.seat-cell.manual {
+  background: #fff4d9;
+  border-color: #e8b64e;
+}
+
+.seat-cell.empty { background: #f7f8fa; }
+
+.seat-cell.placeholder {
+  visibility: hidden;
+  border: none;
+  background: transparent;
+}
+
+.seat-number {
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  font-size: clamp(8px, 1.5vw, 12px);
+  color: #727b88;
+  font-weight: 700;
+}
+
+.seat-name {
+  font-size: clamp(8px, 1.7vw, 14px);
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: center;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+
+.seat-time {
+  font-size: clamp(7px, 1.35vw, 11px);
+  color: #596273;
+  margin-top: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+.seat-empty-label {
+  color: #b1b7c0;
+  font-size: clamp(8px, 1.4vw, 12px);
+}
+
+.player-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.player-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 12px;
+  background: #fff;
+}
+
+.player-row-main { min-width: 0; }
+
+.player-row-name {
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.player-row-time {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 3px;
+}
+
+.muted { color: var(--muted); }
+
+.admin-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 14px;
+  background: #fff;
+}
+
+.question-admin {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.option-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.player-admin-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(100px, 150px) auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+/* 問題ごとの回答状況 */
+.question-response-list {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-soft);
+}
+
+.question-response-list h4 {
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+
+.question-response-empty {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0;
+}
+
+.question-response-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.question-response-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.question-response-main {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.question-response-name {
+  font-weight: 800;
+  margin-bottom: 3px;
+}
+
+.question-response-choice {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.question-response-status {
+  flex-shrink: 0;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.question-response-status.correct {
+  color: var(--green);
+}
+
+.question-response-status.incorrect {
+  color: var(--red);
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 22px 0;
+}
+
+.notice {
+  background: #f1f5f9;
+  border: 1px solid #dce3ec;
+  padding: 12px;
+  border-radius: 9px;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+@media (max-width: 520px) {
+  main { padding: 20px 12px 40px; }
+  .panel { padding: 17px; }
+  .answer-list { gap: 8px; }
+
+  .answer-button {
+    min-height: 65px;
+    font-size: 14px;
+    padding: 8px 5px;
+  }
+
+  .player-admin-row {
+    grid-template-columns: minmax(0, 1fr) 100px;
+  }
+
+  .player-admin-row .button {
+    grid-column: 1 / -1;
+  }
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<header>
+  <div class="brand">　席替えシステム1.0　</div>
+</header>
+
+<main>
+
+<section id="top-screen" class="screen active">
+  <div class="panel">
+    <h1>ONLINE SEAT CHANGE</h1>
+    <p class="description"> </p>
+
+    <div class="stack" style="margin-top:28px">
+      <button type="button" class="button primary menu-button" onclick="showSeats()">全体を見る</button>
+      <button type="button" class="button menu-button" onclick="showPlay()">プレイ</button>
+      <button type="button" class="button menu-button" onclick="showAdminLogin()">管理者</button>
+    </div>
+  </div>
+</section>
+
+<section id="play-screen" class="screen">
+  <button type="button" class="button small back-button" onclick="goHome()">← 戻る</button>
+
+  <div class="panel">
+    <h2>プレイヤー登録</h2>
+
+    <div class="field">
+      <label for="player-name-input">名前</label>
+      <input id="player-name-input" type="text" maxlength="30" placeholder="名前を入力してください">
+    </div>
+
+    <button type="button" class="button primary" style="width:100%" onclick="confirmName()">確認する</button>
+
+    <div id="name-confirm-area" style="display:none;margin-top:22px">
+      <p>以下の名前で開始します。</p>
+      <h2 id="confirmed-name"></h2>
+      <button type="button" class="button primary" style="width:100%" onclick="startCountdown()">スタート</button>
+    </div>
+
+    <p id="name-error" class="description" style="color:var(--red)"></p>
+  </div>
+</section>
+
+<section id="countdown-screen" class="screen">
+  <div class="panel center">
+    <h2>Are you ready?</h2>
+    <div id="countdown-number" class="countdown-number">3</div>
+    <p class="description">カウントダウン後に計測を開始します</p>
+  </div>
+</section>
+
+<section id="quiz-screen" class="screen">
+  <div class="panel">
+    <div class="center">
+      <div id="quiz-timer" class="timer">00:00.00</div>
+      <div id="question-number" class="question-number">QUESTION 1 / 10</div>
+    </div>
+
+    <div id="question-text" class="question-text"></div>
+    <div id="answer-list" class="answer-list"></div>
+    <p id="quiz-feedback" class="description center"></p>
+  </div>
+</section>
+
+<section id="result-screen" class="screen">
+  <div class="panel center">
+    <h2>回答完了</h2>
+    <p class="description">記録が保存されました。</p>
+    <div id="result-name" style="font-size:20px;font-weight:800"></div>
+    <div id="result-time" class="result-time">00:00.00</div>
+    <button type="button" class="button primary" style="width:100%" onclick="showSeats()">座席を見る</button>
+    <button type="button" class="button" style="width:100%;margin-top:10px" onclick="goHome()">トップへ戻る</button>
+  </div>
+</section>
+
+<section id="seat-screen" class="screen">
+  <button type="button" class="button small back-button" onclick="goHome()">← 戻る</button>
+
+  <div class="panel">
+    <h2>仮座席一覧（まだ仮です!!!!!）</h2>
+    <div class="board-title">黒板側</div>
+
+    <div class="seat-map-wrap">
+      <div id="seat-grid" class="seat-grid"></div>
+    </div>
+
+    <div class="section">
+      <h3 class="section-title">参加者一覧</h3>
+      <div id="seat-player-list" class="player-list"></div>
+    </div>
+  </div>
+</section>
+
+<section id="admin-login-screen" class="screen">
+  <button type="button" class="button small back-button" onclick="goHome()">← 戻る</button>
+
+  <div class="panel">
+    <h2>管理者ログイン</h2>
+
+    <div class="field">
+      <label for="admin-password">パスワード</label>
+      <input id="admin-password" type="password" placeholder="パスワード" autocomplete="current-password">
+    </div>
+
+    <p id="admin-login-error" class="description" style="color:var(--red)"></p>
+
+    <button type="button" id="admin-login-button" class="button primary" style="width:100%">ログイン</button>
+  </div>
+</section>
+
+<section id="admin-screen" class="screen">
+  <button type="button" class="button small back-button" onclick="goHome()">← 戻る</button>
+
+  <h1>管理者設定</h1>
+
+  <div class="admin-card">
+    <h3>基本設定</h3>
+    <div class="field">
+      <label for="penalty-input">不正解時の加算秒数</label>
+      <input id="penalty-input" type="number" min="0" step="0.1">
+    </div>
+    <button type="button" class="button primary" onclick="saveSettings()">設定を保存</button>
+  </div>
+
+  <div class="admin-card">
+    <h3>問題編集</h3>
+    <div id="question-editor"></div>
+    <button type="button" class="button primary" style="width:100%" onclick="addQuestion()">問題を追加</button>
+    <button type="button" class="button" style="width:100%;margin-top:8px" onclick="saveQuestions()">問題を保存</button>
+  </div>
+
+  <div class="admin-card">
+    <h3>参加者・記録の編集</h3>
+    <div id="player-admin-list"></div>
+  </div>
+
+  <div class="admin-card">
+    <h3>座席の手動変更</h3>
+    <div class="field">
+      <label for="move-player-select">参加者</label>
+      <select id="move-player-select"></select>
+    </div>
+    <div class="field">
+      <label for="move-seat-select">移動先の座席番号</label>
+      <select id="move-seat-select"></select>
+    </div>
+    <button type="button" class="button primary" style="width:100%" onclick="movePlayer()">座席を変更</button>
+    <button type="button" class="button" style="width:100%;margin-top:8px" onclick="clearManualMoves()">手動変更を解除</button>
+  </div>
+
+  <div class="admin-card">
+    <h3>データ管理</h3>
+    <button type="button" class="button" style="width:100%" onclick="exportData()">データをJSONで書き出す</button>
+    <button type="button" class="button danger" style="width:100%;margin-top:10px" onclick="resetPlayers()">参加者・座席をすべてリセット</button>
+  </div>
+</section>
+
+</main>
+</div>
+
+<script>
+"use strict";
+
+/* =========================================
+   アプリ固有設定
+========================================= */
+
+const STORAGE_KEY = "onlineSeatChange_v1";
+const ADMIN_PASSWORD = "0120";
+const QUESTION_COUNT = 10;
+const ANSWER_DISPLAY_MS = 400;
+
+let currentPlayerName = "";
+let currentQuestionIndex = 0;
+let currentQuestions = [];
+let quizStartTime = 0;
+let timerInterval = null;
+let countdownInterval = null;
+let countdownValue = 3;
+let penaltySeconds = 3;
+let answerLocked = false;
+let finalElapsed = 0;
+let currentPenaltyMilliseconds = 0;
+
+let cloudInitialLoadComplete = false;
+let applyingCloudData = false;
+
+/* 問題編集の自動保存タイマー */
+let questionAutoSaveTimer = null;
+
+/* =========================================
+   問題データ
+========================================= */
+
+function defaultQuestions() {
+  return [
+    { question: "日本の首都はどこですか？", options: ["大阪", "東京", "京都", "名古屋"], answer: 1 },
+    { question: "日本で最も高い山は？", options: ["北岳", "槍ヶ岳", "富士山", "奥穂高岳"], answer: 2 },
+    { question: "1年は何か月ですか？", options: ["10か月", "11か月", "12か月", "13か月"], answer: 2 },
+    { question: "水の化学式は？", options: ["CO2", "H2O", "O2", "NaCl"], answer: 1 },
+    { question: "地球の衛星は何ですか？", options: ["火星", "太陽", "月", "金星"], answer: 2 },
+    { question: "日本の通貨は何ですか？", options: ["ドル", "ユーロ", "円", "元"], answer: 2 },
+    { question: "「りんご」を英語で何といいますか？", options: ["Orange", "Apple", "Grape", "Peach"], answer: 1 },
+    { question: "太陽系で最も大きい惑星は？", options: ["地球", "土星", "木星", "海王星"], answer: 2 },
+    { question: "日本の国旗の色は？", options: ["赤と白", "青と白", "赤と青", "緑と白"], answer: 0 },
+    { question: "1時間は何分ですか？", options: ["30分", "45分", "60分", "90分"], answer: 2 }
+  ];
+}
+
+function normalizeQuestions(savedQuestions) {
+  const defaults = defaultQuestions();
+
+  if (!Array.isArray(savedQuestions)) {
+    return defaults;
+  }
+
+  const normalized = savedQuestions.map((question, index) => {
+    const fallback = defaults[index] || {
+      question: "",
+      options: ["", "", "", ""],
+      answer: 0
+    };
+
+    const options = Array.isArray(question?.options)
+      ? question.options.slice(0, 4).map(value => String(value ?? ""))
+      : [...fallback.options];
+
+    while (options.length < 4) {
+      options.push(fallback.options[options.length] || "");
+    }
+
+    let answer = Number(question?.answer);
+
+    if (!Number.isInteger(answer) || answer < 0 || answer > 3) {
+      answer = fallback.answer;
+    }
+
+    return {
+      question: String(question?.question ?? fallback.question),
+      options,
+      answer
+    };
+  });
+
+  while (normalized.length < QUESTION_COUNT) {
+    normalized.push(defaults[normalized.length]);
+  }
+
+  return normalized;
+}
+
+function defaultData() {
+  return {
+    penaltySeconds: 3,
+    questions: defaultQuestions(),
+    players: [],
+    manualSeats: {},
+    questionResponses: []
+  };
+}
+
+function normalizeAppData(raw) {
+  const defaults = defaultData();
+  const data = raw && typeof raw === "object" ? raw : {};
+
+  return {
+    penaltySeconds:
+      Number.isFinite(Number(data.penaltySeconds)) &&
+      Number(data.penaltySeconds) >= 0
+        ? Number(data.penaltySeconds)
+        : defaults.penaltySeconds,
+
+    questions: normalizeQuestions(data.questions),
+
+    players: Array.isArray(data.players)
+      ? data.players.filter(player =>
+          player &&
+          typeof player.name === "string" &&
+          Number.isFinite(Number(player.time))
+        ).map(player => ({
+          name: player.name,
+          time: Math.max(0, Number(player.time)),
+          completedAt: Number(player.completedAt) || Date.now()
+        }))
+      : [],
+
+    manualSeats: data.manualSeats &&
+      typeof data.manualSeats === "object" &&
+      !Array.isArray(data.manualSeats)
+        ? data.manualSeats
+        : {},
+
+    questionResponses: Array.isArray(data.questionResponses)
+      ? data.questionResponses.filter(response =>
+          response &&
+          typeof response.playerName === "string" &&
+          Number.isInteger(Number(response.questionIndex)) &&
+          Number.isInteger(Number(response.selectedIndex)) &&
+          typeof response.isCorrect === "boolean"
+        ).map(response => ({
+          playerName: response.playerName,
+          questionIndex: Number(response.questionIndex),
+          questionText: String(response.questionText ?? ""),
+          selectedIndex: Number(response.selectedIndex),
+          selectedOption: String(response.selectedOption ?? ""),
+          isCorrect: response.isCorrect,
+          answeredAt: Number(response.answeredAt) || Date.now()
+        }))
+      : []
+  };
+}
+
+function loadData() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+
+    if (!saved) return defaultData();
+
+    return normalizeAppData(JSON.parse(saved));
+  } catch (error) {
+    console.error("ローカルデータ読み込みエラー:", error);
+    return defaultData();
+  }
+}
+
+let appData = loadData();
+penaltySeconds = appData.penaltySeconds;
+
+/* =========================================
+   保存処理
+========================================= */
+
+function saveData() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+  } catch (error) {
+    console.error("ローカル保存エラー:", error);
+    alert("ローカルデータを保存できませんでした。");
+  }
+
+  if (
+    !applyingCloudData &&
+    cloudInitialLoadComplete &&
+    window.onlineSeatChangeFirebase?.ready
+  ) {
+    window.onlineSeatChangeFirebase.save(appData)
+      .catch(error => {
+        console.error("Firebase保存エラー:", error);
+      });
+  }
+}
+
+/* =========================================
+   クラウドから受信したデータの反映
+========================================= */
+
+window.onlineSeatChangeApplyCloudData = function(rawData) {
+  applyingCloudData = true;
+
+  try {
+    appData = normalizeAppData(rawData);
+    penaltySeconds = appData.penaltySeconds;
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+
+    const seatScreen = document.getElementById("seat-screen");
+
+    if (seatScreen?.classList.contains("active")) {
+      renderSeats();
+    }
+
+    /*
+      管理者画面を表示中の場合、
+      回答状況だけを更新する。
+      問題編集欄の入力中の内容は再描画しない。
+    */
+    const adminScreen = document.getElementById("admin-screen");
+
+    if (adminScreen?.classList.contains("active")) {
+      renderQuestionResponseLists();
+    }
+
+  } catch (error) {
+    console.error("クラウドデータ反映エラー:", error);
+  } finally {
+    applyingCloudData = false;
+  }
+};
+
+window.onlineSeatChangeGetLocalData = function() {
+  return appData;
+};
+
+window.onlineSeatChangeFirebaseInitialLoadComplete = function() {
+  cloudInitialLoadComplete = true;
+};
+
+/* =========================================
+   画面切り替え
+========================================= */
+
+function showScreen(screenId) {
+  document.querySelectorAll(".screen").forEach(screen => {
+    screen.classList.remove("active");
+  });
+
+  const target = document.getElementById(screenId);
+
+  if (target) target.classList.add("active");
+}
+
+function goHome() {
+  clearInterval(timerInterval);
+  clearInterval(countdownInterval);
+  timerInterval = null;
+  countdownInterval = null;
+  showScreen("top-screen");
+}
+
+function showPlay() {
+  currentPlayerName = "";
+  document.getElementById("player-name-input").value = "";
+  document.getElementById("name-confirm-area").style.display = "none";
+  document.getElementById("name-error").textContent = "";
+  showScreen("play-screen");
+}
+
+function showSeats() {
+  renderSeats();
+  showScreen("seat-screen");
+}
+
+function showAdminLogin() {
+  document.getElementById("admin-password").value = "";
+  document.getElementById("admin-login-error").textContent = "";
+  showScreen("admin-login-screen");
+}
+
+/* =========================================
+   プレイヤー登録
+========================================= */
+
+function normalizeName(name) {
+  return String(name || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
+function confirmName() {
+  const input = document.getElementById("player-name-input");
+  const name = input.value.trim();
+  const error = document.getElementById("name-error");
+
+  error.textContent = "";
+  document.getElementById("name-confirm-area").style.display = "none";
+
+  if (!name) {
+    error.textContent = "名前を入力してください。";
+    return;
+  }
+
+  const duplicate = appData.players.some(player =>
+    normalizeName(player.name) === normalizeName(name)
+  );
+
+  if (duplicate) {
+    error.textContent =
+      "この名前は既に登録されています。座席リセット後に再度参加できます。";
+    return;
+  }
+
+  currentPlayerName = name;
+  document.getElementById("confirmed-name").textContent = name;
+  document.getElementById("name-confirm-area").style.display = "block";
+}
+
+/* =========================================
+   時間計測
+========================================= */
+
+function formatTime(milliseconds) {
+  const safe = Math.max(0, Number(milliseconds) || 0);
+  const totalCentiseconds = Math.floor(safe / 10);
+
+  const minutes = Math.floor(totalCentiseconds / 6000);
+  const seconds = Math.floor((totalCentiseconds % 6000) / 100);
+  const centiseconds = totalCentiseconds % 100;
+
+  return (
+    String(minutes).padStart(2, "0") + ":" +
+    String(seconds).padStart(2, "0") + "." +
+    String(centiseconds).padStart(2, "0")
+  );
+}
+
+function getCurrentTime() {
+  return performance.now() - quizStartTime;
+}
+
+function updateTimer() {
+  const timer = document.getElementById("quiz-timer");
+
+  if (timer) {
+    timer.textContent = formatTime(
+      getCurrentTime() + currentPenaltyMilliseconds
+    );
+  }
+}
+
+/* =========================================
+   カウントダウン
+========================================= */
+
+function startCountdown() {
+  if (!currentPlayerName) return;
+
+  clearInterval(countdownInterval);
+  clearInterval(timerInterval);
+
+  countdownValue = 3;
+  document.getElementById("countdown-number").textContent = countdownValue;
+  showScreen("countdown-screen");
+
+  countdownInterval = setInterval(() => {
+    countdownValue--;
+
+    if (countdownValue <= 0) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+      beginQuiz();
+      return;
+    }
+
+    document.getElementById("countdown-number").textContent = countdownValue;
+  }, 1000);
+}
+
+/* =========================================
+   クイズ開始
+========================================= */
+
+function beginQuiz() {
+  currentQuestionIndex = 0;
+  currentQuestions = normalizeQuestions(appData.questions).slice(0, QUESTION_COUNT);
+  answerLocked = false;
+  finalElapsed = 0;
+  currentPenaltyMilliseconds = 0;
+
+  if (currentQuestions.length !== QUESTION_COUNT) {
+    alert("問題を10問用意できませんでした。");
+    showAdminLogin();
+    return;
+  }
+
+  try {
+    renderQuestion();
+  } catch (error) {
+    console.error("問題描画エラー:", error);
+    alert("問題の表示に失敗しました。");
+    showAdminLogin();
+    return;
+  }
+
+  quizStartTime = performance.now();
+  document.getElementById("quiz-timer").textContent = "00:00.00";
+
+  showScreen("quiz-screen");
+
+  clearInterval(timerInterval);
+  timerInterval = setInterval(updateTimer, 10);
+}
+
+function renderQuestion() {
+  if (document.activeElement?.classList?.contains("answer-button")) {
+    document.activeElement.blur();
+  }
+
+  const oldButtons = document.querySelectorAll(".answer-button");
+
+  oldButtons.forEach(button => {
+    button.classList.remove("correct", "incorrect");
+    button.blur();
+  });
+
+  const question = currentQuestions[currentQuestionIndex];
+
+  if (!question) {
+    throw new Error("問題データが存在しません。");
+  }
+
+  if (!Array.isArray(question.options) || question.options.length !== 4) {
+    throw new Error("選択肢データが不正です。");
+  }
+
+  answerLocked = false;
+
+  document.getElementById("question-number").textContent =
+    "QUESTION " + (currentQuestionIndex + 1) + " / " + QUESTION_COUNT;
+
+  document.getElementById("question-text").textContent = question.question;
+  document.getElementById("quiz-feedback").textContent = "";
+
+  const list = document.getElementById("answer-list");
+  list.innerHTML = "";
+
+  question.options.forEach((option, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "answer-button";
+    button.textContent = option;
+    button.addEventListener("click", () => answerQuestion(index, button));
+    list.appendChild(button);
+  });
+}
+
+/* =========================================
+   回答履歴の記録
+========================================= */
+
+function recordQuestionResponse(question, selectedIndex, isCorrect) {
+  if (!Array.isArray(appData.questionResponses)) {
+    appData.questionResponses = [];
+  }
+
+  appData.questionResponses.push({
+    playerName: currentPlayerName,
+    questionIndex: currentQuestionIndex,
+    questionText: String(question.question ?? ""),
+    selectedIndex: selectedIndex,
+    selectedOption: String(question.options[selectedIndex] ?? ""),
+    isCorrect: Boolean(isCorrect),
+    answeredAt: Date.now()
+  });
+
+  saveData();
+}
+
+/* =========================================
+   回答処理
+========================================= */
+
+function answerQuestion(selectedIndex, selectedButton) {
+  if (answerLocked) return;
+
+  answerLocked = true;
+
+  const question = currentQuestions[currentQuestionIndex];
+  const isCorrect = selectedIndex === Number(question.answer);
+
+  const buttons = Array.from(document.querySelectorAll(".answer-button"));
+
+  buttons.forEach(button => {
+    button.disabled = true;
+  });
+
+  recordQuestionResponse(question, selectedIndex, isCorrect);
+
+  if (isCorrect) {
+    selectedButton.classList.add("correct");
+    document.getElementById("quiz-feedback").textContent = "正解";
+  } else {
+    selectedButton.classList.add("incorrect");
+
+    currentPenaltyMilliseconds += Number(appData.penaltySeconds) * 1000;
+
+    document.getElementById("quiz-feedback").textContent =
+      "不正解 +" + appData.penaltySeconds + "秒";
+  }
+
+  selectedButton.blur();
+
+  const isLastQuestion = currentQuestionIndex === QUESTION_COUNT - 1;
+
+  if (isLastQuestion) {
+    finalElapsed = getCurrentTime() + currentPenaltyMilliseconds;
+
+    clearInterval(timerInterval);
+    timerInterval = null;
+
+    document.getElementById("quiz-timer").textContent =
+      formatTime(finalElapsed);
+
+    setTimeout(() => {
+      finishQuiz(finalElapsed);
+    }, ANSWER_DISPLAY_MS);
+
+    return;
+  }
+
+  updateTimer();
+
+  setTimeout(() => {
+    currentQuestionIndex++;
+    renderQuestion();
+  }, ANSWER_DISPLAY_MS);
+}
+
+/* =========================================
+   クイズ終了・結果保存
+========================================= */
+
+function finishQuiz(elapsedMilliseconds) {
+  clearInterval(timerInterval);
+  timerInterval = null;
+
+  const finalTime = Math.max(0, Number(elapsedMilliseconds) || 0);
+
+  appData.players.push({
+    name: currentPlayerName,
+    time: finalTime,
+    completedAt: Date.now()
+  });
+
+  saveData();
+
+  document.getElementById("result-name").textContent = currentPlayerName;
+  document.getElementById("result-time").textContent = formatTime(finalTime);
+
+  showScreen("result-screen");
+
+  currentPlayerName = "";
+  currentPenaltyMilliseconds = 0;
+}
+
+/* =========================================
+   座席位置
+========================================= */
+
+const TOTAL_COLUMNS = 7;
+const TOTAL_ROWS = 6;
+
+function isCornerSeat(x, y) {
+  return (
+    (x === 0 && y === 0) ||
+    (x === 6 && y === 0) ||
+    (x === 0 && y === 5) ||
+    (x === 6 && y === 5)
+  );
+}
+
+const orderedSeats = [];
+
+for (let y = TOTAL_ROWS - 1; y >= 0; y--) {
+  for (let x = 0; x < TOTAL_COLUMNS; x++) {
+    if (!isCornerSeat(x, y)) {
+      orderedSeats.push({ x, y });
+    }
+  }
+}
+
+function getSeatNumber(x, y) {
+  const index = orderedSeats.findIndex(
+    seat => seat.x === x && seat.y === y
+  );
+
+  return index >= 0 ? index + 1 : null;
+}
+
+/* =========================================
+   参加者の並び順
+========================================= */
+
+function getSortedPlayers() {
+  return [...appData.players].sort((a, b) => {
+    return Number(a.time) - Number(b.time);
+  });
+}
+
+/* =========================================
+   座席割り振り
+========================================= */
+
+function getSeatAssignments() {
+  const assignments = {};
+  const occupiedSeats = new Set();
+
+  Object.entries(appData.manualSeats || {}).forEach(([name, seatNumber]) => {
+    const playerExists = appData.players.some(player =>
+      normalizeName(player.name) === normalizeName(name)
+    );
+
+    const seat = orderedSeats[Number(seatNumber) - 1];
+
+    if (playerExists && seat && !occupiedSeats.has(Number(seatNumber))) {
+      assignments[normalizeName(name)] = Number(seatNumber);
+      occupiedSeats.add(Number(seatNumber));
+    }
+  });
+
+  getSortedPlayers().forEach(player => {
+    const key = normalizeName(player.name);
+
+    if (assignments[key]) return;
+
+    const availableSeat = orderedSeats.findIndex((seat, index) => {
+      return !occupiedSeats.has(index + 1);
+    });
+
+    if (availableSeat !== -1) {
+      assignments[key] = availableSeat + 1;
+      occupiedSeats.add(availableSeat + 1);
+    }
+  });
+
+  return assignments;
+}
+
+/* =========================================
+   座席画面描画
+========================================= */
+
+function renderSeats() {
+  const grid = document.getElementById("seat-grid");
+  grid.innerHTML = "";
+
+  const assignments = getSeatAssignments();
+  const playerBySeat = {};
+
+  appData.players.forEach(player => {
+    const seatNumber = assignments[normalizeName(player.name)];
+
+    if (seatNumber) {
+      playerBySeat[seatNumber] = player;
+    }
+  });
+
+  for (let y = 0; y < TOTAL_ROWS; y++) {
+    for (let x = 0; x < TOTAL_COLUMNS; x++) {
+      if (isCornerSeat(x, y)) {
+        const placeholder = document.createElement("div");
+        placeholder.className = "seat-cell placeholder";
+        grid.appendChild(placeholder);
+        continue;
+      }
+
+      const seatNumber = getSeatNumber(x, y);
+      const player = playerBySeat[seatNumber];
+
+      const cell = document.createElement("div");
+      cell.className = "seat-cell";
+
+      if (player) {
+        cell.classList.add("occupied");
+
+        const manualSeat = Object.entries(appData.manualSeats || {})
+          .some(([name, number]) =>
+            normalizeName(name) === normalizeName(player.name) &&
+            Number(number) === seatNumber
+          );
+
+        if (manualSeat) cell.classList.add("manual");
+      } else {
+        cell.classList.add("empty");
+      }
+
+      const number = document.createElement("div");
+      number.className = "seat-number";
+      number.textContent = seatNumber;
+      cell.appendChild(number);
+
+      if (player) {
+        const name = document.createElement("div");
+        name.className = "seat-name";
+        name.textContent = player.name;
+
+        const time = document.createElement("div");
+        time.className = "seat-time";
+        time.textContent = formatTime(player.time);
+
+        cell.appendChild(name);
+        cell.appendChild(time);
+      } else {
+        const empty = document.createElement("div");
+        empty.className = "seat-empty-label";
+        empty.textContent = "空席";
+        cell.appendChild(empty);
+      }
+
+      grid.appendChild(cell);
+    }
+  }
+
+  renderSeatPlayerList(assignments);
+}
+
+function renderSeatPlayerList(assignments) {
+  const list = document.getElementById("seat-player-list");
+  list.innerHTML = "";
+
+  const sorted = getSortedPlayers();
+
+  if (sorted.length === 0) {
+    list.innerHTML = '<p class="description">まだ参加者はいません。</p>';
+    return;
+  }
+
+  sorted.forEach((player, index) => {
+    const seatNumber = assignments[normalizeName(player.name)];
+
+    const row = document.createElement("div");
+    row.className = "player-row";
+
+    const main = document.createElement("div");
+    main.className = "player-row-main";
+
+    const name = document.createElement("div");
+    name.className = "player-row-name";
+    name.textContent = (index + 1) + ". " + player.name;
+
+    const time = document.createElement("div");
+    time.className = "player-row-time";
+    time.textContent = formatTime(player.time);
+
+    main.appendChild(name);
+    main.appendChild(time);
+
+    const seat = document.createElement("strong");
+    seat.textContent = seatNumber ? "座席 " + seatNumber : "未割当";
+
+    row.appendChild(main);
+    row.appendChild(seat);
+    list.appendChild(row);
+  });
+}
+
+/* =========================================
+   管理者ログイン
+========================================= */
+
+function adminLogin() {
+  const passwordInput = document.getElementById("admin-password");
+  const errorElement = document.getElementById("admin-login-error");
+
+  if (passwordInput.value !== ADMIN_PASSWORD) {
+    errorElement.textContent = "パスワードが違います。";
+    passwordInput.focus();
+    passwordInput.select();
+    return;
+  }
+
+  errorElement.textContent = "";
+
+  try {
+    renderAdmin();
+    showScreen("admin-screen");
+  } catch (error) {
+    console.error("管理者画面表示エラー:", error);
+    errorElement.textContent = "管理者画面を開けませんでした。";
+  }
+}
+
+/* =========================================
+   管理者画面描画
+========================================= */
+
+function renderAdmin() {
+  penaltySeconds = Number(appData.penaltySeconds);
+  document.getElementById("penalty-input").value = appData.penaltySeconds;
+
+  renderQuestionEditor();
+  renderPlayerAdmin();
+  renderMoveSelectors();
+}
+
+/* =========================================
+   基本設定
+========================================= */
+
+function saveSettings() {
+  const value = Number(document.getElementById("penalty-input").value);
+
+  if (!Number.isFinite(value) || value < 0) {
+    alert("ペナルティ秒数は0以上の数値にしてください。");
+    return;
+  }
+
+  appData.penaltySeconds = value;
+  penaltySeconds = value;
+
+  saveData();
+  alert("設定を保存しました。");
+}
+
+/* =========================================
+   問題編集の自動保存
+========================================= */
+
+/*
+  現在の問題編集欄の値をappDataへ反映する。
+  入力途中の空欄もそのまま保存する。
+  この処理では画面を再描画しないため、
+  入力中にフォーカスが外れることはない。
+*/
+function syncQuestionEditorToData() {
+  const questionInputs = document.querySelectorAll('[data-type="question"]');
+  const optionInputs = document.querySelectorAll('[data-type="option"]');
+  const answerInputs = document.querySelectorAll('[data-type="answer"]');
+
+  const newQuestions = appData.questions.map(question => ({
+    question: question.question,
+    options: [...question.options],
+    answer: question.answer
+  }));
+
+  questionInputs.forEach(input => {
+    const index = Number(input.dataset.questionIndex);
+
+    if (newQuestions[index]) {
+      newQuestions[index].question = input.value;
+    }
+  });
+
+  optionInputs.forEach(input => {
+    const index = Number(input.dataset.questionIndex);
+    const optionIndex = Number(input.dataset.optionIndex);
+
+    if (
+      newQuestions[index] &&
+      optionIndex >= 0 &&
+      optionIndex < 4
+    ) {
+      newQuestions[index].options[optionIndex] = input.value;
+    }
+  });
+
+  answerInputs.forEach(input => {
+    const index = Number(input.dataset.questionIndex);
+
+    if (newQuestions[index]) {
+      newQuestions[index].answer = Number(input.value);
+    }
+  });
+
+  appData.questions = newQuestions;
+  saveData();
+}
+
+/*
+  入力が止まってから300ms後に自動保存する。
+*/
+function scheduleQuestionAutoSave() {
+  clearTimeout(questionAutoSaveTimer);
+
+  questionAutoSaveTimer = setTimeout(() => {
+    questionAutoSaveTimer = null;
+    syncQuestionEditorToData();
+  }, 300);
+}
+
+/*
+  問題追加・削除・手動保存の直前に、
+  保存待ちの編集内容を即時反映する。
+*/
+function flushQuestionAutoSave() {
+  if (questionAutoSaveTimer !== null) {
+    clearTimeout(questionAutoSaveTimer);
+    questionAutoSaveTimer = null;
+    syncQuestionEditorToData();
+  }
+}
+
+/* =========================================
+   問題編集画面
+========================================= */
+
+function renderQuestionEditor() {
+  const editor = document.getElementById("question-editor");
+  editor.innerHTML = "";
+
+  appData.questions.forEach((question, index) => {
+    const card = document.createElement("div");
+    card.className = "question-admin";
+
+    const title = document.createElement("h3");
+    title.textContent = "問題 " + (index + 1);
+    card.appendChild(title);
+
+    const questionLabel = document.createElement("label");
+    questionLabel.textContent = "問題文";
+    card.appendChild(questionLabel);
+
+    const questionInput = document.createElement("textarea");
+    questionInput.value = question.question || "";
+    questionInput.dataset.questionIndex = index;
+    questionInput.dataset.type = "question";
+    questionInput.addEventListener("input", scheduleQuestionAutoSave);
+    card.appendChild(questionInput);
+
+    const options = document.createElement("div");
+    options.className = "option-grid";
+
+    for (let optionIndex = 0; optionIndex < 4; optionIndex++) {
+      const input = document.createElement("input");
+      input.value = question.options[optionIndex] || "";
+      input.placeholder = "選択肢 " + (optionIndex + 1);
+      input.dataset.questionIndex = index;
+      input.dataset.optionIndex = optionIndex;
+      input.dataset.type = "option";
+      input.addEventListener("input", scheduleQuestionAutoSave);
+      options.appendChild(input);
+    }
+
+    card.appendChild(options);
+
+    const answerLabel = document.createElement("label");
+    answerLabel.textContent = "正解の選択肢";
+    answerLabel.style.marginTop = "12px";
+    card.appendChild(answerLabel);
+
+    const select = document.createElement("select");
+    select.dataset.questionIndex = index;
+    select.dataset.type = "answer";
+
+    ["選択肢1", "選択肢2", "選択肢3", "選択肢4"].forEach((label, optionIndex) => {
+      const option = document.createElement("option");
+      option.value = optionIndex;
+      option.textContent = label;
+      select.appendChild(option);
+    });
+
+    select.value = question.answer;
+    select.addEventListener("change", scheduleQuestionAutoSave);
+    card.appendChild(select);
+
+    /*
+      問題ごとの回答状況を常時表示する。
+      表示ボタンは使用しない。
+    */
+    const responseContainer = document.createElement("div");
+    responseContainer.className = "question-response-list";
+    responseContainer.dataset.responseQuestionIndex = index;
+    card.appendChild(responseContainer);
+
+    renderQuestionResponses(index, responseContainer);
+
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.className = "button danger small";
+    deleteButton.style.marginTop = "12px";
+    deleteButton.textContent = "この問題を削除";
+    deleteButton.onclick = () => deleteQuestion(index);
+
+    card.appendChild(deleteButton);
+    editor.appendChild(card);
+  });
+}
+
+/* =========================================
+   問題別回答状況
+========================================= */
+
+/*
+  問題番号に対応する回答履歴を取得する。
+  問題文を編集しても過去の回答が消えないよう、
+  questionTextではなくquestionIndexで判定する。
+*/
+function getQuestionResponses(index) {
+  return (appData.questionResponses || [])
+    .filter(response =>
+      Number(response.questionIndex) === Number(index)
+    )
+    .sort((a, b) =>
+      Number(a.answeredAt) - Number(b.answeredAt)
+    );
+}
+
+/*
+  各問題の直下に回答者と選択内容を表示する。
+*/
+function renderQuestionResponses(index, container) {
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  const heading = document.createElement("h4");
+  heading.textContent = "回答状況";
+  container.appendChild(heading);
+
+  const responses = getQuestionResponses(index);
+
+  const count = document.createElement("p");
+  count.className = "description";
+  count.style.margin = "0 0 8px";
+  count.textContent = "回答者数：" + responses.length + "人";
+  container.appendChild(count);
+
+  if (responses.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "question-response-empty";
+    empty.textContent = "まだ回答した人はいません。";
+    container.appendChild(empty);
+    return;
+  }
+
+  responses.forEach((response, responseIndex) => {
+    const row = document.createElement("div");
+    row.className = "question-response-row";
+
+    const main = document.createElement("div");
+    main.className = "question-response-main";
+
+    const name = document.createElement("div");
+    name.className = "question-response-name";
+    name.textContent =
+      (responseIndex + 1) + ". " + response.playerName;
+
+    const choice = document.createElement("div");
+    choice.className = "question-response-choice";
+
+    const selectedNumber = Number(response.selectedIndex) + 1;
+    const selectedText = response.selectedOption || "";
+
+    choice.textContent =
+      "選択：" + selectedNumber + "番「" + selectedText + "」";
+
+    main.appendChild(name);
+    main.appendChild(choice);
+
+    const status = document.createElement("div");
+    status.className =
+      "question-response-status " +
+      (response.isCorrect ? "correct" : "incorrect");
+
+    status.textContent = response.isCorrect ? "正解" : "不正解";
+
+    row.appendChild(main);
+    row.appendChild(status);
+
+    container.appendChild(row);
+  });
+}
+
+/*
+  Firebaseから新しい回答履歴を受信したとき、
+  問題編集欄を作り直さず回答状況だけ更新する。
+*/
+function renderQuestionResponseLists() {
+  const containers = document.querySelectorAll(
+    "[data-response-question-index]"
+  );
+
+  containers.forEach(container => {
+    const index = Number(container.dataset.responseQuestionIndex);
+    renderQuestionResponses(index, container);
+  });
+}
+
+/* =========================================
+   問題保存
+========================================= */
+
+function saveQuestions() {
+  flushQuestionAutoSave();
+
+  const questionInputs = document.querySelectorAll('[data-type="question"]');
+  const optionInputs = document.querySelectorAll('[data-type="option"]');
+  const answerInputs = document.querySelectorAll('[data-type="answer"]');
+
+  const newQuestions = appData.questions.map(question => ({
+    question: question.question,
+    options: [...question.options],
+    answer: question.answer
+  }));
+
+  questionInputs.forEach(input => {
+    const index = Number(input.dataset.questionIndex);
+    newQuestions[index].question = input.value.trim();
+  });
+
+  optionInputs.forEach(input => {
+    const index = Number(input.dataset.questionIndex);
+    const optionIndex = Number(input.dataset.optionIndex);
+    newQuestions[index].options[optionIndex] = input.value.trim();
+  });
+
+  answerInputs.forEach(input => {
+    const index = Number(input.dataset.questionIndex);
+    newQuestions[index].answer = Number(input.value);
+  });
+
+  for (const question of newQuestions) {
+    if (!question.question) {
+      alert("問題文が空欄の問題があります。");
+      return;
+    }
+
+    if (question.options.length !== 4 || question.options.some(option => !option)) {
+      alert("選択肢を4つすべて入力してください。");
+      return;
+    }
+
+    if (!Number.isInteger(question.answer) || question.answer < 0 || question.answer > 3) {
+      alert("正解の選択肢を確認してください。");
+      return;
+    }
+  }
+
+  if (newQuestions.length < QUESTION_COUNT) {
+    alert("問題は最低10問必要です。");
+    return;
+  }
+
+  appData.questions = newQuestions;
+  saveData();
+
+  renderQuestionEditor();
+
+  alert("問題を保存しました。");
+}
+
+function addQuestion() {
+  flushQuestionAutoSave();
+
+  appData.questions.push({
+    question: "",
+    options: ["", "", "", ""],
+    answer: 0
+  });
+
+  saveData();
+  renderQuestionEditor();
+}
+
+function deleteQuestion(index) {
+  if (appData.questions.length <= QUESTION_COUNT) {
+    alert("問題は最低10問必要です。");
+    return;
+  }
+
+  if (!confirm("この問題を削除しますか？")) return;
+
+  flushQuestionAutoSave();
+
+  appData.questions.splice(index, 1);
+
+  /*
+    問題の削除により番号がずれるため、
+    回答履歴も現在の問題番号に合わせて整理する。
+  */
+  appData.questionResponses = (appData.questionResponses || [])
+    .filter(response => Number(response.questionIndex) !== index)
+    .map(response => ({
+      ...response,
+      questionIndex: Number(response.questionIndex) > index
+        ? Number(response.questionIndex) - 1
+        : Number(response.questionIndex)
+    }));
+
+  saveData();
+  renderQuestionEditor();
+}
+
+/* =========================================
+   参加者管理
+========================================= */
+
+function renderPlayerAdmin() {
+  const list = document.getElementById("player-admin-list");
+  list.innerHTML = "";
+
+  if (appData.players.length === 0) {
+    list.innerHTML = '<p class="description">参加者はいません。</p>';
+    return;
+  }
+
+  appData.players.forEach((player, index) => {
+    const row = document.createElement("div");
+    row.className = "player-admin-row";
+
+    const nameInput = document.createElement("input");
+    nameInput.value = player.name;
+    nameInput.dataset.index = index;
+    nameInput.dataset.field = "name";
+    nameInput.setAttribute("aria-label", "参加者名");
+
+    const timeInput = document.createElement("input");
+    timeInput.type = "number";
+    timeInput.min = "0";
+    timeInput.step = "0.01";
+    timeInput.value = (Number(player.time) / 1000).toFixed(2);
+    timeInput.dataset.index = index;
+    timeInput.dataset.field = "time";
+    timeInput.setAttribute("aria-label", "記録（秒）");
+
+    const saveButton = document.createElement("button");
+    saveButton.type = "button";
+    saveButton.className = "button small";
+    saveButton.textContent = "保存";
+    saveButton.onclick = () => savePlayerEdit(index);
+
+    row.appendChild(nameInput);
+    row.appendChild(timeInput);
+    row.appendChild(saveButton);
+
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.className = "button danger small";
+    deleteButton.textContent = "削除";
+    deleteButton.style.gridColumn = "1 / -1";
+    deleteButton.onclick = () => deletePlayer(index);
+
+    list.appendChild(row);
+    list.appendChild(deleteButton);
+  });
+}
+
+function savePlayerEdit(index) {
+  const nameInput = document.querySelector(
+    `[data-index="${index}"][data-field="name"]`
+  );
+
+  const timeInput = document.querySelector(
+    `[data-index="${index}"][data-field="time"]`
+  );
+
+  const newName = nameInput.value.trim();
+  const newTime = Number(timeInput.value);
+
+  if (!newName) {
+    alert("名前を入力してください。");
+    return;
+  }
+
+  if (!Number.isFinite(newTime) || newTime < 0) {
+    alert("記録は0以上の数値にしてください。");
+    return;
+  }
+
+  const duplicate = appData.players.some((player, playerIndex) => {
+    return playerIndex !== index &&
+      normalizeName(player.name) === normalizeName(newName);
+  });
+
+  if (duplicate) {
+    alert("同じ名前の参加者が既に存在します。");
+    return;
+  }
+
+  const oldName = appData.players[index].name;
+
+  appData.players[index].name = newName;
+  appData.players[index].time = newTime * 1000;
+
+  if (Object.prototype.hasOwnProperty.call(appData.manualSeats, oldName)) {
+    appData.manualSeats[newName] = appData.manualSeats[oldName];
+    delete appData.manualSeats[oldName];
+  }
+
+  /*
+    回答履歴の表示名も変更後の名前に合わせる。
+  */
+  (appData.questionResponses || []).forEach(response => {
+    if (normalizeName(response.playerName) === normalizeName(oldName)) {
+      response.playerName = newName;
+    }
+  });
+
+  saveData();
+  renderAdmin();
+  alert("参加者情報を保存しました。");
+}
+
+function deletePlayer(index) {
+  const player = appData.players[index];
+
+  if (!player) return;
+  if (!confirm(player.name + " を削除しますか？")) return;
+
+  delete appData.manualSeats[player.name];
+  appData.players.splice(index, 1);
+
+  /*
+    削除した参加者の回答履歴も削除。
+  */
+  appData.questionResponses = (appData.questionResponses || [])
+    .filter(response =>
+      normalizeName(response.playerName) !== normalizeName(player.name)
+    );
+
+  saveData();
+  renderAdmin();
+}
+
+/* =========================================
+   座席の手動変更
+========================================= */
+
+function renderMoveSelectors() {
+  const playerSelect = document.getElementById("move-player-select");
+  const seatSelect = document.getElementById("move-seat-select");
+
+  playerSelect.innerHTML = "";
+  seatSelect.innerHTML = "";
+
+  appData.players.forEach(player => {
+    const option = document.createElement("option");
+    option.value = player.name;
+    option.textContent = player.name;
+    playerSelect.appendChild(option);
+  });
+
+  orderedSeats.forEach((seat, index) => {
+    const option = document.createElement("option");
+    option.value = index + 1;
+    option.textContent = "座席 " + (index + 1);
+    seatSelect.appendChild(option);
+  });
+}
+
+function movePlayer() {
+  const playerName = document.getElementById("move-player-select").value;
+  const seatNumber = Number(document.getElementById("move-seat-select").value);
+
+  if (!playerName) {
+    alert("参加者がいません。");
+    return;
+  }
+
+  if (!seatNumber || seatNumber < 1 || seatNumber > 38) {
+    alert("座席番号が不正です。");
+    return;
+  }
+
+  const existingName = Object.keys(appData.manualSeats).find(name => {
+    return Number(appData.manualSeats[name]) === seatNumber &&
+      normalizeName(name) !== normalizeName(playerName);
+  });
+
+  if (existingName) delete appData.manualSeats[existingName];
+
+  appData.manualSeats[playerName] = seatNumber;
+
+  saveData();
+  renderAdmin();
+  alert("座席を変更しました。");
+}
+
+function clearManualMoves() {
+  if (!confirm("すべての手動座席変更を解除しますか？")) return;
+
+  appData.manualSeats = {};
+  saveData();
+  renderAdmin();
+
+  alert("手動座席変更を解除しました。");
+}
+
+/* =========================================
+   リセット
+========================================= */
+
+function resetPlayers() {
+  if (!confirm("参加者と座席情報をすべてリセットしますか？")) return;
+  if (!confirm("この操作は取り消せません。実行しますか？")) return;
+
+  appData.players = [];
+  appData.manualSeats = {};
+
+  /*
+    問題別の回答履歴もすべて消去。
+    これにより回答状況も初期化される。
+  */
+  appData.questionResponses = [];
+
+  saveData();
+  renderAdmin();
+
+  alert("参加者・座席・問題別回答履歴をリセットしました。");
+}
+
+/* =========================================
+   JSON書き出し
+========================================= */
+
+function exportData() {
+  const json = JSON.stringify(appData, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = "online-seat-change-data.json";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  URL.revokeObjectURL(url);
+}
+
+/* =========================================
+   初期化
+========================================= */
+
+function initialize() {
+  penaltySeconds = Number(appData.penaltySeconds) || 0;
+  currentPenaltyMilliseconds = 0;
+
+  document.getElementById("admin-login-button")
+    .addEventListener("click", adminLogin);
+
+  document.getElementById("admin-password")
+    .addEventListener("keydown", event => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        adminLogin();
+      }
+    });
+}
+
+initialize();
+</script>
+
+<!-- =======================================================
+     ONLINE SEAT CHANGE 専用 Firebase Module
+     他アプリとは別のアプリ名・保存パスを使用
+======================================================= -->
+
+<script type="module">
+
+import {
+  initializeApp,
+  getApps
+} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+
+import {
+  getDatabase,
+  ref,
+  onValue,
+  set,
+  runTransaction
+} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
+
+
+const FIREBASE_APP_NAME =
+  "onlineSeatChangeSeatApp";
+
+const FIREBASE_DATA_PATH =
+  "onlineSeatChangeSeatApp/data";
+
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCh1dS522TL9HjGEHk7tCHXFWfJ0F1Qfx0",
+  authDomain: "darts-01.firebaseapp.com",
+  databaseURL: "https://darts-01-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "darts-01",
+  storageBucket: "darts-01.firebasestorage.app",
+  messagingSenderId: "936099490830",
+  appId: "1:936099490830:web:bc3b39184138acbd1aa05f",
+  measurementId: "G-JTX22B0QZQ"
+};
+
+
+try {
+
+  /*
+    同じ名前のFirebaseアプリが既に存在する場合は再利用。
+    他アプリのデフォルトFirebaseアプリには触れない。
+  */
+  const existingApp = getApps().find(
+    app => app.name === FIREBASE_APP_NAME
+  );
+
+  const firebaseApp = existingApp ||
+    initializeApp(firebaseConfig, FIREBASE_APP_NAME);
+
+  const database = getDatabase(firebaseApp);
+
+  const appDataRef = ref(
+    database,
+    FIREBASE_DATA_PATH
+  );
+
+
+  async function saveToCloud(data) {
+
+    if (!data || typeof data !== "object") {
+      throw new Error("保存データが不正です。");
+    }
+
+    await set(
+      appDataRef,
+      data
+    );
+
+  }
+
+
+  window.onlineSeatChangeFirebase = {
+
+    ready: true,
+
+    appName: FIREBASE_APP_NAME,
+
+    dataPath: FIREBASE_DATA_PATH,
+
+    save: saveToCloud
+
+  };
+
+
+  /*
+    クラウドデータをリアルタイム監視。
+  */
+  onValue(
+    appDataRef,
+
+    snapshot => {
+
+      try {
+
+        if (snapshot.exists()) {
+
+          const cloudData = snapshot.val();
+
+          window.onlineSeatChangeApplyCloudData(
+            cloudData
+          );
+
+        } else {
+
+          /*
+            初回のみ、トランザクションで初期データを作成。
+            複数端末が同時に初期接続しても、
+            既に作成されたデータを上書きしない。
+          */
+          runTransaction(
+            appDataRef,
+            currentData => {
+              if (currentData === null) {
+                return window.onlineSeatChangeGetLocalData();
+              }
+
+              return currentData;
+            }
+          ).catch(error => {
+            console.error(
+              "[ONLINE SEAT CHANGE] 初期データ作成エラー:",
+              error
+            );
+          });
+
+        }
+
+        window.onlineSeatChangeFirebaseInitialLoadComplete();
+
+        console.log(
+          "[ONLINE SEAT CHANGE] Firebase connected:",
+          FIREBASE_DATA_PATH
+        );
+
+      } catch(error) {
+
+        console.error(
+          "[ONLINE SEAT CHANGE] Initial data error:",
+          error
+        );
+
+      }
+
+    },
+
+    error => {
+
+      console.error(
+        "[ONLINE SEAT CHANGE] Firebase read error:",
+        error
+      );
+
+      window.onlineSeatChangeFirebase.ready = false;
+
+      alert(
+        "クラウドデータを読み込めませんでした。\n" +
+        "Firebase Realtime Databaseのアクセスルールを確認してください。"
+      );
+
+    }
+
+  );
+
+
+} catch(error) {
+
+  console.error(
+    "[ONLINE SEAT CHANGE] Firebase initialization error:",
+    error
+  );
+
+  window.onlineSeatChangeFirebase = {
+    ready: false,
+    error: String(error)
+  };
+
+  alert(
+    "Firebaseの初期化に失敗しました。\n" +
+    "通信環境とFirebase設定を確認してください。"
+  );
+
+}
+
+</script>
+
+</body>
+</html>
